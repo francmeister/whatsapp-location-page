@@ -32,8 +32,8 @@
         };
 
         // 🔴 EDIT: your n8n location-callback webhook URL (production, not -test)
-         await fetch("https://aypchatbot.app.n8n.cloud/webhook/location-callback", {
-       // await fetch("https://aypchatbot.app.n8n.cloud/webhook-test/location-callback", {
+       //  await fetch("https://aypchatbot.app.n8n.cloud/webhook/location-callback", {
+        await fetch("https://aypchatbot.app.n8n.cloud/webhook-test/location-callback", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload)
