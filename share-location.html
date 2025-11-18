@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Share your location</title>
+</head>
+<body>
+<script>
+(function () {
+  // Read phone from ?phone=... query parameter
+  const params = new URLSearchParams(window.location.search);
+  const phone = params.get("phone");
+
+  if (!phone) {
+    alert("Missing phone number.");
+    return;
+  }
+
+  if (!navigator.geolocation) {
+    alert("Geolocation is not supported by your browser.");
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    async function (pos) {
+      try {
+        const payload = {
+          phone: phone,
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude
+        };
+
+        // 🔴 EDIT: your n8n location-callback webhook URL (production, not -test)
+        await fetch("https://aypchatbot.app.n8n.cloud/webhook/location-callback", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+
+        // 🔴 EDIT: your WhatsApp bot number, no plus
+        window.location.href = "wa.link/6ll0v5?text=I%20am%20back";
+      } catch (e) {
+        alert("Error sending location. Please try again.");
+      }
+    },
+    function (err) {
+      alert("Could not get your location: " + err.message);
+    },
+    {
+      enableHighAccuracy: true,
+      timeout: 15000,
+      maximumAge: 0
+    }
+  );
+})();
+</script>
+</body>
+</html>
