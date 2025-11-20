@@ -7,53 +7,79 @@
 </head>
 <body>
 <script>
-(function () {
-  // Read phone from ?phone=... query parameter
+(async function () {
+  // --- config you might change ---
+  // const CALLBACK_URL = "https://aypchatbot.app.n8n.cloud/webhook/location-callback"; // n8n webhook production url
+  const CALLBACK_URL = "https://aypchatbot.app.n8n.cloud/webhook-test/location-callback"; // n8n webhook development url
+  const WHATSAPP_URL = "https://wa.link/6ll0v5"; // your chatbot link
+  // -------------------------------
+
   const params = new URLSearchParams(window.location.search);
   const phone = params.get("phone");
 
   if (!phone) {
     alert("Missing phone number.");
+    window.location.href = WHATSAPP_URL;
     return;
   }
 
-  if (!navigator.geolocation) {
+  if (!("geolocation" in navigator)) {
     alert("Geolocation is not supported by your browser.");
+    window.location.href = WHATSAPP_URL;
     return;
   }
 
-  navigator.geolocation.getCurrentPosition(
-    async function (pos) {
-      try {
-        const payload = {
-          phone: phone,
-          lat: pos.coords.latitude,
-          lng: pos.coords.longitude
-        };
+  async function sendLocation() {
+    navigator.geolocation.getCurrentPosition(
+      async function (pos) {
+        try {
+          const payload = {
+            phone: phone,
+            lat: pos.coords.latitude,
+            lng: pos.coords.longitude
+          };
 
-        // 🔴 EDIT: your n8n location-callback webhook URL (production, not -test)
-       //  await fetch("https://aypchatbot.app.n8n.cloud/webhook/location-callback", {
-        await fetch("https://aypchatbot.app.n8n.cloud/webhook-test/location-callback", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
-        });
-//
-        // 🔴 EDIT: your WhatsApp bot number, no plus
-        window.location.href = "wa.link/6ll0v5?text=I%20am%20back";
-      } catch (e) {
-        alert("Error sending location. Please try again.");
+          await fetch(CALLBACK_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+          });
+        } catch (e) {
+          // you might log this on the server; for now we just ignore
+          console.error("Error sending location:", e);
+        } finally {
+          // Always go back to the bot, whether send succeeded or not
+          window.location.href = WHATSAPP_URL;
+        }
+      },
+      function (err) {
+        alert("Could not get your location: " + err.message);
+        window.location.href = WHATSAPP_URL;
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 0
       }
-    },
-    function (err) {
-      alert("Could not get your location: " + err.message);
-    },
-    {
-      enableHighAccuracy: true,
-      timeout: 15000,
-      maximumAge: 0
+    );
+  }
+
+  // If Permissions API is available, check status (helps for "Always allow")
+  if (navigator.permissions && navigator.permissions.query) {
+    try {
+      const result = await navigator.permissions.query({ name: "geolocation" });
+
+      // If state is "granted", browser will not prompt – coordinates return immediately
+      // If "prompt" or "denied", calling getCurrentPosition will either show popup or fail
+      sendLocation();
+    } catch (e) {
+      // If Permissions API fails for some reason, just try to get the position
+      sendLocation();
     }
-  );
+  } else {
+    // Older browsers: just try
+    sendLocation();
+  }
 })();
 </script>
 </body>
